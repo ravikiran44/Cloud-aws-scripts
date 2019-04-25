@@ -1,0 +1,18 @@
+#!/bin/bash
+
+FAILED_PARAMS=""
+
+for i in `cat $1` ; do
+  NAME=`echo $i | cut -f1 -d":"`
+  TYPE=`echo $i | cut -f2 -d":"`
+  VALUE=`echo $i | cut -f3- -d":"`
+  aws ssm put-parameter --cli-input-json "{ 
+        \"Name\": \"$NAME\",
+        \"Value\": \"$VALUE\",
+        \"Type\": \"$TYPE\"
+    }" --overwrite || FAILED_PARAMS="$FAILED_PARAMS\n$i"
+done
+
+echo Failed to set the following parameters:
+echo
+echo -e $FAILED_PARAMS

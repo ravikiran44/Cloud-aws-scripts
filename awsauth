@@ -1,0 +1,44 @@
+#!/bin/bash
+
+OLD_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+OLD_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+OLD_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
+
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_SESSION_TOKEN
+
+PROFILE=$1
+MFACODE=$2
+
+MFA_SERIAL=`aws configure get mfa_serial --profile $PROFILE`
+if [ -z $MFA_SERIAL ] ; then
+  echo "Unable to find MFA device arn for $PROFILE"
+  exit 1
+fi
+
+CRED=`aws sts get-session-token --serial-number $MFA_SERIAL --token-code $MFACODE --profile $PROFILE`
+AWS_ACCESS_KEY_ID=`echo $CRED | jq -r .Credentials.AccessKeyId`
+AWS_SECRET_ACCESS_KEY=`echo $CRED | jq -r .Credentials.SecretAccessKey`
+AWS_SESSION_TOKEN=`echo $CRED | jq -r .Credentials.SessionToken`
+
+if [ -z $AWS_ACCESS_KEY_ID ] ; then
+  echo "Authentication failed, reverting to old values"
+  AWS_ACCESS_KEY_ID=$OLD_AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY=$OLD_AWS_SECRET_ACCESS_KEY
+  AWS_SESSION_TOKEN=$OLD_AWS_SESSION_TOKEN
+else
+  if echo $PS1 | grep "^\[" > /dev/null ; then
+    PROMPT=`echo $PS1 | cut -f 2 -d"]" | cut -f 2- -d" "`
+  else 
+    PROMPT=$PS1
+  fi
+  PS1="[ aws:$PROFILE ] $PROMPT"
+fi
+
+export AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY
+export AWS_SESSION_TOKEN
+export PS1
+
+

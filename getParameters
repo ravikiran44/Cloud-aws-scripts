@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "Getting parameters..."
+PARAMS=`aws ssm describe-parameters | jq -r .Parameters[].Name`
+
+echo "Getting key value pairs..."
+for i in $PARAMS ; do
+  echo $i
+  INFO=`aws ssm get-parameter --name $i`
+  TYPE=`echo $INFO | jq -r .Parameter.Type`
+  VALUE=`echo $INFO | jq -r .Parameter.Value`
+  echo $i:$TYPE:$VALUE >> $1
+done

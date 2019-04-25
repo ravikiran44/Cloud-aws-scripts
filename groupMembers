@@ -1,0 +1,3 @@
+#!/bin/bash
+
+aws iam get-group --group-name $1 | jq -r .Users[].UserName
